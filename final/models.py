@@ -2,9 +2,14 @@ from hashlib import md5
 from app import db
 from app import app
 import flask.ext.whooshalchemy as whooshalchemy
+from config import WHOOSH_ENABLED
 
 ROLE_USER = 0
 ROLE_ADMIN = 1
+
+enable_search = WHOOSH_ENABLED
+if enable_search:
+    import flask.ext.whooshalchemy as whooshalchemy
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -85,3 +90,6 @@ class Track(db.Model):
 
     def __repr__(self):
         return '<Track %r>' % (self.name)
+
+if enable_search:
+    whooshalchemy.whoosh_index(app, Post)

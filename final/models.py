@@ -1,15 +1,8 @@
 from hashlib import md5
 from app import db
-from app import app
-import flask.ext.whooshalchemy as whooshalchemy
-from config import WHOOSH_ENABLED
 
 ROLE_USER = 0
 ROLE_ADMIN = 1
-
-enable_search = WHOOSH_ENABLED
-if enable_search:
-    import flask.ext.whooshalchemy as whooshalchemy
 
 class User(db.Model):
     id = db.Column(db.Integer, primary_key = True)
@@ -20,8 +13,8 @@ class User(db.Model):
     about_me = db.Column(db.String(140))
     last_seen = db.Column(db.DateTime)
     money=db.Column(db.Float(10))
+    carts = db.relationship('Cart', backref = 'user', lazy = 'dynamic')
     cart_user = db.relationship('Cart_Shop', backref = 'user', lazy = 'dynamic')
-    track_item = db.relationship('Track', backref = 'user', lazy = 'dynamic')
     def is_authenticated(self):
         return True
 
@@ -50,7 +43,6 @@ class Post(db.Model):
         return '<Post %r>' % (self.body)
 
 class Shop(db.Model):
-    __searchable__=['intro']
     id = db.Column(db.Integer, primary_key= True)
     name = db.Column(db.String (80))
     intro =db.Column(db.String(200))
@@ -62,7 +54,12 @@ class Shop(db.Model):
     def __repr__(self):
         return '<Shop %r>' % (self.name)
 
-whooshalchemy.whoosh_index(app, Shop)
+class Cart(db.Model):
+    id = db.Column(db.Integer, primary_key= True)
+    shop_id=db.Column(db.Integer)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    def __repr__(self):
+        return '<Cart %r>' % (self.shop_id)
 
 
 
@@ -80,16 +77,3 @@ class Cart_Shop(db.Model):
 
     def __repr__(self):
         return '<Cart_Shop %r>' % (self.name)
-
-class Track(db.Model):
-    id = db.Column(db.Integer, primary_key= True)
-    name = db.Column(db.String (80))
-    pic = db.Column(db.String(256))
-    status = db.Column(db.String(200))
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
-
-    def __repr__(self):
-        return '<Track %r>' % (self.name)
-
-if enable_search:
-    whooshalchemy.whoosh_index(app, Post)

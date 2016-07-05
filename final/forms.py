@@ -9,6 +9,3 @@ class LoginForm(Form):
 
 class BuyForm(Form):
    submit=SubmitField('Buy It')
-
-class SearchForm(Form):
-    search=TextField('search',validators=[Required()])

@@ -1,10 +1,10 @@
 from flask import render_template, flash, redirect, session, url_for, request, g
 from flask.ext.login import login_user, logout_user, current_user, login_required
 from app import app, db, lm, oid
-from forms import LoginForm, BuyForm, SearchForm
-from models import User, Shop, Cart_Shop, Track,  ROLE_USER, ROLE_ADMIN
+from forms import LoginForm, BuyForm
+from models import User, Shop, Cart, Cart_Shop, ROLE_USER, ROLE_ADMIN
 from datetime import datetime
-from config import  MAX_SEARCH_RESULTS
+
 @lm.user_loader
 def load_user(id):
     return User.query.get(int(id))
@@ -106,9 +106,6 @@ def transaction(id):
              g.user.money=g.user.money-shop.price
              db.session.add(g.user)
              db.session.commit()
-             q=Track(name=shop.name,pic=shop.pic,status='Ready to send',user_id=g.user.id )
-             db.session.add(q)
-             db.session.commit()
              return redirect(url_for('Success'))
          else :
              return redirect(url_for('false'))
@@ -136,17 +133,10 @@ def false():
 @login_required
 def cart(id):
      if Cart_Shop.query.filter_by(user_id=g.user.id).first():
-          shops=Cart_Shop.query.order_by(Cart_Shop.name)
-     else:
-         return redirect (url_for('cart_empty'))
+        shops=Cart_Shop.query.order_by(Cart_Shop.name)
      return render_template('cart.html',
                               shops=shops)
 
-@app.route('/cart_empty')
-@login_required
-def cart_empty():
-
-    return render_template('cart_empty.html')
 
 @app.route('/put/<id>', methods = ['GET', 'POST'])
 @login_required
@@ -163,45 +153,3 @@ def put(id):
          flash('It has existed.')
     return render_template('put.html',
                            user=user)
-
-
-@app.route('/remove/<id>', methods = ['GET', 'POST'])
-@login_required
-def remove(id):
-    q=Cart_Shop.query.filter_by(shop_id=id).first()
-    db.session.delete(q)
-    db.session.commit()
-    return render_template ('remove.html')
-
-@app.before_request
-def before_request():
-    g.user=current_user
-    if g.user.is_authenticated():
-        g.user.last_seen=datetime.utcnow()
-        db.session.add(g.user)
-        db.session.commit()
-        g.search_form=SearchForm()
-
-@app.route('/search', methods = ['POST'])
-@login_required
-def search():
-    if not g.search_form.validate_on_submit():
-        return redirect(url_for('index'))
-    return redirect(url_for('search_results', query = g.search_form.search.data))
-
-
-@app.route('/search_results/<query>')
-@login_required
-def search_results(query):
-    shops = Shop.query.filter(Shop.intro.like("%"+query+"%")).all()
-    return render_template('search_results.html',
-        query = query,
-        shops = shops)
-
-
-@app.route('/track')
-@login_required
-def track():
-    tracks=Track.query.filter_by(user_id=g.user.id).all()
-    return render_template('track.html',
-                           tracks=tracks)
